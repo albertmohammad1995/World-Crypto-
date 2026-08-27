@@ -4,15 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Crypto</title>
-    <!-- App Logo Icon (Favicon) -->
     <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/d/1RD7n4OFI_snC8996JEHZahYD1NCWyX1U=s500">
     <link rel="apple-touch-icon" href="https://lh3.googleusercontent.com/d/1RD7n4OFI_snC8996JEHZahYD1NCWyX1U=s500">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         body {
             background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.4)), url('https://lh3.googleusercontent.com/d/1GfhCX8wtcipVnUwgogPenOOctGs-HwOO=s1000') no-repeat center center fixed;
@@ -33,33 +28,49 @@
 </head>
 <body class="text-white min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto relative select-none">
 
-    <!-- 1. LOGIN / SEED PHRASE SCREEN -->
-    <div id="authScreen" class="absolute inset-0 bg-slate-950/90 z-50 flex flex-col justify-center p-6 space-y-4">
+    <div id="authScreen" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col justify-center p-6 space-y-4">
         <div class="text-center flex flex-col items-center">
             <img src="https://lh3.googleusercontent.com/d/1RD7n4OFI_snC8996JEHZahYD1NCWyX1U=s500" alt="App Logo" class="w-14 h-14 rounded-2xl shadow-lg mb-2 object-cover border border-white/20">
             <h1 class="text-2xl font-bold text-indigo-300 mb-1">World Crypto</h1>
-            <p class="text-xs text-gray-200">Login with your 12-word Secret Seed Phrase or create a new account.</p>
+            <p class="text-xs text-gray-200">Enter your 12-word Secret Seed Phrase to access your wallet.</p>
         </div>
         <div class="space-y-2">
-            <label class="text-xs text-gray-200 font-semibold">12-Word Seed Phrase:</label>
-            <textarea id="seedInput" rows="3" class="w-full bg-black/60 border border-white/30 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-indigo-400 placeholder-gray-400" placeholder="apple banana cat dog ..."></textarea>
+            <label class="text-xs text-gray-200 font-semibold">12-Word Secret Phrase:</label>
+            <textarea id="seedInput" rows="3" class="w-full bg-black/60 border border-white/30 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-indigo-400 placeholder-gray-400" placeholder="word1 word2 word3 ... word12"></textarea>
         </div>
         <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg text-sm transition shadow-lg">
-            Login / Recover Wallet
+            Login to Wallet
         </button>
         <div class="relative flex py-2 items-center">
             <div class="flex-grow border-t border-white/30"></div>
             <span class="flex-shrink mx-4 text-gray-300 text-xs">OR</span>
             <div class="flex-grow border-t border-white/30"></div>
         </div>
-        <button onclick="generateNewAccount()" class="w-full bg-black/40 hover:bg-black/60 border border-indigo-400/60 text-indigo-300 font-semibold py-3 rounded-lg text-sm transition shadow-lg">
+        <button onclick="startCreateAccount()" class="w-full bg-black/40 hover:bg-black/60 border border-indigo-400/60 text-indigo-300 font-semibold py-3 rounded-lg text-sm transition shadow-lg">
             Create New Account
         </button>
     </div>
 
-    <!-- 2. MAIN WALLET DASHBOARD -->
+    <div id="createAccountModal" class="absolute inset-0 bg-slate-950/98 z-50 hidden flex flex-col justify-center p-6 space-y-4">
+        <div class="text-center">
+            <h2 class="text-lg font-bold text-amber-400">🔒 Backup Your Secret Phrase</h2>
+            <p class="text-[11px] text-gray-300 mt-1">Write down or take a screenshot of these 12 words in order. Never share them with anyone!</p>
+        </div>
+        
+        <div id="seedWordsGrid" class="grid grid-cols-3 gap-2 bg-black/50 p-3 rounded-xl border border-white/20"></div>
+
+        <div class="flex space-x-2">
+            <button onclick="copyGeneratedSeed()" class="w-1/2 bg-slate-800 hover:bg-slate-700 border border-white/30 text-white py-2.5 rounded-lg text-xs font-semibold transition">
+                <i class="fa-solid fa-copy"></i> Copy Words
+            </button>
+            <button onclick="confirmSeedBackup()" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-semibold transition shadow">
+                I Have Saved It <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+        <button onclick="cancelCreateAccount()" class="text-center text-xs text-gray-400 hover:text-gray-200 mt-2">Cancel</button>
+    </div>
+
     <div id="mainDashboard" class="flex flex-col flex-grow justify-between hidden">
-        <!-- Top Navigation / Header -->
         <div class="flex items-center justify-between py-2">
             <button onclick="openProfile()" class="w-10 h-10 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white hover:bg-white/15 transition shadow">
                 <i class="fa-solid fa-user text-sm"></i>
@@ -68,12 +79,11 @@
                 <span class="text-[11px] text-gray-200 font-medium">World Crypto Balance</span>
                 <h2 class="text-xl font-bold tracking-wide" id="totalBalance">$30.00</h2>
             </div>
-            <button onclick="lockWallet()" class="text-gray-200 hover:text-white text-xs px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg transition">
-                <i class="fa-solid fa-lock"></i>
+            <button onclick="lockWallet()" class="text-red-400 hover:text-red-300 text-xs px-3 py-1.5 bg-black/40 border border-red-500/30 rounded-lg transition" title="Logout Wallet">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
             </button>
         </div>
 
-        <!-- Action Buttons -->
         <div class="grid grid-cols-3 gap-3 my-3">
             <button onclick="openActionModal('send')" class="bg-black/40 border border-white/20 hover:bg-white/15 p-3.5 rounded-2xl flex flex-col items-center justify-center space-y-2 transition shadow-lg">
                 <div class="w-10 h-10 rounded-full bg-indigo-500/30 text-indigo-300 flex items-center justify-center">
@@ -95,7 +105,6 @@
             </button>
         </div>
 
-        <!-- Tokens Section -->
         <div class="bg-black/40 border border-white/20 rounded-2xl p-4 flex-grow flex flex-col shadow-xl my-1">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-semibold text-gray-200">Live Market Tokens</h3>
@@ -104,7 +113,6 @@
                 </span>
             </div>
 
-            <!-- Search Bar -->
             <div class="relative mb-3">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
                     <i class="fa-solid fa-search text-xs"></i>
@@ -112,11 +120,9 @@
                 <input type="text" id="tokenSearch" onkeyup="filterTokens()" placeholder="Search coin..." class="w-full bg-black/50 border border-white/25 text-xs rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-indigo-400 placeholder-gray-400">
             </div>
 
-            <!-- Token List -->
             <div id="tokenList" class="space-y-2.5 overflow-y-auto max-h-56 pr-1"></div>
         </div>
 
-        <!-- Bottom Navigation Bar -->
         <div class="flex justify-around items-center bg-black/40 border border-white/20 rounded-xl py-2 mt-2 shadow-lg">
             <div class="flex flex-col items-center text-indigo-400 cursor-pointer">
                 <i class="fa-solid fa-house text-sm"></i>
@@ -137,7 +143,6 @@
         </div>
     </div>
 
-    <!-- 3. MODALS -->
     <div id="cryptoModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-white/30 w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center">
@@ -148,7 +153,6 @@
         </div>
     </div>
 
-    <!-- Profile Modal -->
     <div id="profileModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-white/30 w-full max-w-xs rounded-2xl p-5 space-y-3 text-center shadow-2xl">
             <div class="w-16 h-16 bg-indigo-600/60 border border-white/30 rounded-full mx-auto flex items-center justify-center text-2xl font-bold overflow-hidden">
@@ -164,6 +168,17 @@
                 </div>
             </div>
 
+            <div class="bg-black/40 p-3 rounded-lg text-left space-y-1.5 border border-white/15">
+                <label class="text-[10px] text-gray-300 font-semibold flex items-center justify-between">
+                    <span>Your Referral Link:</span>
+                    <i class="fa-solid fa-share-nodes text-indigo-400"></i>
+                </label>
+                <div class="flex space-x-1.5">
+                    <input type="text" id="referralLinkDisplay" readonly class="w-full bg-black/60 border border-white/30 p-2 rounded text-[10px] text-indigo-300 font-mono select-all focus:outline-none">
+                    <button onclick="copyReferralLink()" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded text-[10px] font-semibold text-white whitespace-nowrap">Copy</button>
+                </div>
+            </div>
+
             <div class="bg-black/40 p-3 rounded-lg text-left space-y-1 text-xs border border-white/15">
                 <p class="text-gray-200 font-semibold">Secret Phrase Backup:</p>
                 <p id="seedPhraseDisplay" class="text-[10px] text-gray-300 bg-black/50 p-2 rounded select-all border border-white/15 font-mono"></p>
@@ -173,25 +188,20 @@
         </div>
     </div>
 
-    <!-- JavaScript Logic -->
     <script>
-        // EmailJS Init with Public Key
-        emailjs.init("v1Nt8S0AALpYLFk9c");
-
         let totalSupplyWLD = parseInt(localStorage.getItem('mother_total_supply')) || 1000000000;
         let userWLD = parseFloat(localStorage.getItem('user_wld_balance')) || 0.00;
         let taskStatus = localStorage.getItem('task_reward_status') || 'pending_task';
         let wldUnlocked = localStorage.getItem('wld_unlocked') === 'true';
         
-        // Transaction History Data Setup
         let transactionHistory = JSON.parse(localStorage.getItem('wallet_transactions')) || [];
 
-        // Daily Check-In Data Setup
         let currentStreak = parseInt(localStorage.getItem('checkin_streak')) || 0;
         let lastCheckInDate = localStorage.getItem('last_checkin_date') || '';
         let checkInCompleted = localStorage.getItem('checkin_completed_today') === 'true';
 
-        // Reset check-in state if a day was missed (streak break logic)
+        let temporaryGeneratedSeed = "";
+
         let todayStr = new Date().toDateString();
         if (lastCheckInDate && lastCheckInDate !== todayStr) {
             let lastDate = new Date(lastCheckInDate);
@@ -208,8 +218,6 @@
             checkInCompleted = false;
             localStorage.setItem('checkin_completed_today', 'false');
         }
-
-        let generatedOTP = "";
 
         let sampleTokens = [
             { name: "WorldCoin", symbol: "WLD", id: "worldcoin", balance: userWLD.toFixed(2) + " WLD", numericPrice: 0.10, rawPriceStr: "$0.10", change: "+0.00%", icon: "🌐", color: "text-amber-400", address: "LOCKED", fixedValue: true },
@@ -237,11 +245,19 @@
         ];
 
         window.onload = function() {
-            if (localStorage.getItem('wallet_seed')) {
+            const sessionActive = sessionStorage.getItem('wallet_session_active');
+
+            if (sessionActive === 'true' && localStorage.getItem('wallet_seed')) {
                 document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('createAccountModal').classList.add('hidden');
                 document.getElementById('mainDashboard').classList.remove('hidden');
                 fetchLivePrices();
                 setInterval(fetchLivePrices, 4000);
+            } else {
+                sessionStorage.removeItem('wallet_session_active');
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('createAccountModal').classList.add('hidden');
+                document.getElementById('mainDashboard').classList.add('hidden');
             }
 
             if (localStorage.getItem('pending_checkin') === 'true') {
@@ -284,32 +300,102 @@
             document.getElementById('totalBalance').innerText = "$" + (30.00 + (userWLD * 0.10)).toFixed(2);
         }
 
-        function generateNewAccount() {
-            const dummyWords = ["apple", "banana", "cat", "dog", "elephant", "fish", "grape", "horse", "ice", "juice", "kite", "lemon"];
-            localStorage.setItem('wallet_seed', dummyWords.join(" "));
-            localStorage.setItem('wallet_username', '');
+        const dictionaryWords = ["apple", "banana", "cat", "dog", "elephant", "fish", "grape", "horse", "ice", "juice", "kite", "lemon", "mountain", "river", "tiger", "lion", "sun", "moon", "star", "fire", "water", "wind", "cloud", "stone"];
+
+        function startCreateAccount() {
+            let shuffled = [...dictionaryWords].sort(() => 0.5 - Math.random());
+            let selected12 = shuffled.slice(0, 12);
+            temporaryGeneratedSeed = selected12.join(" ");
+
+            let gridContainer = document.getElementById('seedWordsGrid');
+            gridContainer.innerHTML = "";
+            selected12.forEach((word, index) => {
+                gridContainer.innerHTML += `
+                    <div class="bg-black/60 border border-white/15 p-2 rounded text-center">
+                        <span class="text-[9px] text-gray-400 block">${index + 1}.</span>
+                        <span class="text-xs font-mono font-bold text-indigo-300">${word}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('createAccountModal').classList.remove('hidden');
+        }
+
+        function cancelCreateAccount() {
+            document.getElementById('createAccountModal').classList.add('hidden');
+            document.getElementById('authScreen').classList.remove('hidden');
+        }
+
+        async function copyGeneratedSeed() {
+            if (!temporaryGeneratedSeed) {
+                alert("No seed words generated yet!");
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(temporaryGeneratedSeed);
+                alert("12-Word Secret Phrase copied to clipboard successfully!");
+            } catch (err) {
+                const textarea = document.createElement("textarea");
+                textarea.value = temporaryGeneratedSeed;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand("copy");
+                    alert("12-Word Secret Phrase copied to clipboard!");
+                } catch (e) {
+                    alert("Failed to copy. Please select and copy manually.");
+                }
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function confirmSeedBackup() {
+            let uniqueId = 'user_' + Math.floor(Math.random() * 1000000);
+            
+            localStorage.setItem('wallet_seed', temporaryGeneratedSeed);
+            localStorage.setItem('wallet_username', uniqueId);
             localStorage.setItem('user_wld_balance', '0');
             localStorage.setItem('task_reward_status', 'pending_task');
             localStorage.setItem('checkin_streak', '0');
             localStorage.setItem('wld_unlocked', 'false');
             localStorage.setItem('checkin_completed_today', 'false');
             localStorage.setItem('wallet_transactions', JSON.stringify([]));
+            
+            sessionStorage.setItem('wallet_session_active', 'true');
+
+            document.getElementById('createAccountModal').classList.add('hidden');
+            document.getElementById('mainDashboard').classList.remove('hidden');
             location.reload();
         }
 
         function handleLogin() {
             const val = document.getElementById('seedInput').value.trim();
-            if (val.split(/\s+/).length === 12) {
+            const wordsArray = val.split(/\s+/);
+            
+            if (wordsArray.length === 12 && wordsArray[0] !== "") {
                 localStorage.setItem('wallet_seed', val);
+                if (!localStorage.getItem('wallet_username')) {
+                    localStorage.setItem('wallet_username', 'user_' + Math.floor(Math.random() * 100000));
+                }
+                sessionStorage.setItem('wallet_session_active', 'true');
+
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('mainDashboard').classList.remove('hidden');
                 location.reload();
             } else {
-                alert('Please enter a valid 12-word seed phrase!');
+                alert('Please enter exactly 12 secret seed words to login!');
             }
         }
 
         function lockWallet() {
-            localStorage.removeItem('wallet_seed');
-            location.reload();
+            if (confirm("Are you sure you want to log out? Make sure you have backed up your 12-word seed phrase!")) {
+                sessionStorage.removeItem('wallet_session_active');
+                document.getElementById('mainDashboard').classList.add('hidden');
+                document.getElementById('authScreen').classList.remove('hidden');
+                location.reload();
+            }
         }
 
         function renderTokens(tokens) {
@@ -320,7 +406,7 @@
             container.innerHTML = '';
             filtered.forEach(token => {
                 const isPositive = token.change.startsWith('+') || !token.change.startsWith('-');
-                let extraInfo = token.symbol === "WLD" ? `${userWLD.toFixed(2)} WLD <span class="text-[9px] ${wldUnlocked ? 'text-green-300 bg-green-950/60 border-green-500/30' : 'text-amber-300 bg-amber-950/60 border-amber-500/30'} px-1.5 py-0.5 rounded border">${wldUnlocked ? '🔓 UNLOCKED' : '🔒 LOCKED'}</span>` : token.balance;
+                let extraInfo = token.symbol === "WLD" ? `${userWLD.toFixed(2)} WLD <span class="text-[9px] ${wldUnlocked ? 'text-green-300 bg-green-950/60 border-green-500/30' : 'text-amber-300 bg-amber-950/60 border-amber-500/30'} px-1.5 py-0.5 rounded border">${wldUnlocked ? 'UNLOCKED' : 'LOCKED'}</span>` : token.balance;
                 
                 container.innerHTML += `
                     <div onclick="openReceiveForToken('${token.name}')" class="flex items-center justify-between p-2.5 hover:bg-white/10 rounded-xl cursor-pointer transition ${token.flashClass || ''}">
@@ -344,13 +430,12 @@
             renderTokens(sampleTokens);
         }
 
-        // --- History Tab Feature ---
         function openHistoryTab() {
             const modal = document.getElementById('cryptoModal');
             const title = document.getElementById('modalTitle');
             const body = document.getElementById('modalBody');
             modal.classList.remove('hidden');
-            title.innerText = "📜 Transaction History";
+            title.innerText = "Transaction History";
 
             let historyHTML = `<div class="space-y-2 max-h-56 overflow-y-auto pr-1">`;
             
@@ -430,7 +515,6 @@
                 <div class="space-y-3">
                     <p class="text-gray-300 text-[10px]">Complete the steps below to claim your 300 WLD reward. <strong class="text-amber-400">Note: You must remain subscribed to the YouTube channel and join the Telegram channel for at least 90 days; otherwise, the reward will be deducted.</strong></p>
                     
-                    <!-- YouTube Task -->
                     <div class="bg-black/40 p-2.5 rounded-lg border border-white/15 space-y-1.5">
                         <div class="flex items-center justify-between">
                             <div>
@@ -442,7 +526,6 @@
                         <input type="text" id="ytLinkInput" placeholder="Paste your YouTube channel/profile link..." value="${localStorage.getItem('pending_yt_link') || ''}" class="w-full bg-black/60 border border-white/30 p-2 rounded text-[11px] text-white placeholder-gray-400 focus:outline-none mt-1">
                     </div>
 
-                    <!-- Telegram Task -->
                     <div class="bg-black/40 p-2.5 rounded-lg border border-white/15 space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold text-indigo-300">2. Subscribe Telegram Channel</span>
@@ -459,14 +542,14 @@
             } else if (taskStatus === 'submitted') {
                 content += `
                     <div class="text-center bg-amber-950/40 border border-amber-500/40 p-3 rounded-lg">
-                        <p class="text-amber-400 font-semibold text-xs">⏳ Verification Pending</p>
+                        <p class="text-amber-400 font-semibold text-xs">Verification Pending</p>
                         <p class="text-[10px] text-gray-300 mt-1">We will manually verify within 24 hours and the reward will be added to your account.</p>
                     </div>
                 `;
             } else if (taskStatus === 'completed') {
                 content += `
                     <div class="text-center bg-green-950/40 border border-green-500/40 p-3 rounded-lg">
-                        <p class="text-green-400 font-semibold text-xs">🎉 Reward Claimed Successfully!</p>
+                        <p class="text-green-400 font-semibold text-xs">Reward Claimed Successfully!</p>
                         <p class="text-[10px] text-gray-300 mt-1">300 WLD has been successfully added to your wallet.</p>
                     </div>
                 `;
@@ -494,7 +577,7 @@
             localStorage.setItem('pending_tg_user', tgId);
 
             const botUsername = "world_crypto_wallet_bot";
-            const message = encodeURIComponent(`🔔 নতুন টাস্ক সাবমিশন:\n\n📺 ইউটিউব লিংক: ${ytLink}\n👤 টেলিগ্রাম আইডি: ${tgId}`);
+            const message = encodeURIComponent(`New Task Submission:\n\nYouTube Link: ${ytLink}\nTelegram ID: ${tgId}`);
             const telegramUrl = `https://t.me/${botUsername}?text=${message}`;
             
             window.open(telegramUrl, '_blank');
@@ -503,13 +586,12 @@
             closeModal();
         }
 
-        // --- Daily Check-In Feature (90 Days Streak) ---
         function openDailyCheckInTab() {
             const modal = document.getElementById('cryptoModal');
             const title = document.getElementById('modalTitle');
             const body = document.getElementById('modalBody');
             modal.classList.remove('hidden');
-            title.innerText = "📅 Daily Check-In (90 Days Streak)";
+            title.innerText = "Daily Check-In (90 Days Streak)";
 
             let gridHTML = `<div class="grid grid-cols-6 gap-1.5 max-h-52 overflow-y-auto p-1 bg-black/40 rounded-lg border border-white/15">`;
             
@@ -526,9 +608,9 @@
 
             let actionButton = '';
             if (wldUnlocked) {
-                actionButton = `<div class="text-center bg-green-950/50 border border-green-500/40 p-2.5 rounded-lg text-green-400 font-semibold text-xs">🎉 90-Day Streak Completed! Your 300 WLD is Unlocked.</div>`;
+                actionButton = `<div class="text-center bg-green-950/50 border border-green-500/40 p-2.5 rounded-lg text-green-400 font-semibold text-xs">90-Day Streak Completed! Your 300 WLD is Unlocked.</div>`;
             } else if (checkInCompleted) {
-                actionButton = `<div class="text-center bg-black/50 border border-white/20 p-2.5 rounded-lg text-indigo-300 text-xs">✅ Checked in for today! Come back tomorrow for Day ${currentStreak + 1}.</div>`;
+                actionButton = `<div class="text-center bg-black/50 border border-white/20 p-2.5 rounded-lg text-indigo-300 text-xs">Checked in for today! Come back tomorrow for Day ${currentStreak + 1}.</div>`;
             } else {
                 actionButton = `<button onclick="performDailyCheckIn()" class="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded font-semibold text-white text-xs transition shadow">Check In for Day ${currentStreak + 1}</button>`;
             }
@@ -569,25 +651,17 @@
                 userWLD = 300.00;
                 localStorage.setItem('wld_unlocked', 'true');
                 localStorage.setItem('user_wld_balance', userWLD);
-                alert("🎉 Congratulations! You have completed 90 days of continuous check-in! Your 300 WLD reward is now officially UNLOCKED.");
+                alert("Congratulations! You have completed 90 days of continuous check-in! Your 300 WLD reward is now officially UNLOCKED.");
             } else {
-                alert(`✅ Day ${currentStreak} check-in successful! Keep your streak going tomorrow.`);
+                alert(`Day ${currentStreak} check-in successful! Keep your streak going tomorrow.`);
             }
 
             updateTotalBalanceEstimate();
             openDailyCheckInTab();
         }
 
-        // --- EmailJS Admin OTP System ---
         function requestAdminOTP() {
-            generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-            emailjs.send("service_yitiign", "template_81lj8jj", { otp_code: generatedOTP }).then(function(response) {
-                alert("📧 OTP code has been successfully sent to your Gmail!");
-                openOTPModal();
-            }, function(error) {
-                alert("Failed to send OTP email. Please check your EmailJS Template ID or settings.");
-                console.log("EmailJS Error:", error);
-            });
+            openOTPModal();
         }
 
         function openOTPModal() {
@@ -595,23 +669,25 @@
             const title = document.getElementById('modalTitle');
             const body = document.getElementById('modalBody');
             modal.classList.remove('hidden');
-            title.innerText = "🔐 Admin Email OTP Verification";
+            title.innerText = "Admin Panel Verification";
             body.innerHTML = `
                 <div class="space-y-3">
-                    <p class="text-[11px] text-gray-300">A 6-digit OTP code has been sent to your registered admin email. Enter it below:</p>
-                    <input type="text" id="otpInput" placeholder="Enter 6-digit OTP" maxlength="6" class="w-full bg-black/60 border border-white/30 p-2.5 rounded text-center text-sm font-mono tracking-widest text-white focus:outline-none">
-                    <button onclick="verifyAdminOTP()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-2 rounded font-semibold text-white text-xs">Verify & Open Panel</button>
+                    <p class="text-[11px] text-gray-300">Enter your Admin Secret PIN to access the Mother App Panel:</p>
+                    <input type="password" id="adminPinInput" placeholder="Enter Admin PIN" class="w-full bg-black/60 border border-white/30 p-2.5 rounded text-center text-sm font-mono tracking-widest text-white focus:outline-none">
+                    <button onclick="verifyAdminPIN()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-2 rounded font-semibold text-white text-xs">Login to Admin Panel</button>
                 </div>
             `;
         }
 
-        function verifyAdminOTP() {
-            const enteredOTP = document.getElementById('otpInput').value.trim();
-            if (enteredOTP === generatedOTP) {
-                alert("OTP Verified Successfully!");
+        function verifyAdminPIN() {
+            const enteredPin = document.getElementById('adminPinInput').value.trim();
+            const encodedSecretPin = "NDU2ODM="; 
+            
+            if (btoa(enteredPin) === encodedSecretPin) {
+                alert("Admin Verified Successfully!");
                 openAdminPanel();
             } else {
-                alert("Invalid OTP Code! Please try again.");
+                alert("Invalid Admin PIN! Please try again.");
             }
         }
 
@@ -620,7 +696,7 @@
             const title = document.getElementById('modalTitle');
             const body = document.getElementById('modalBody');
             modal.classList.remove('hidden');
-            title.innerText = "🛠️ Admin Dashboard (Mother App)";
+            title.innerText = "Admin Dashboard (Mother App)";
 
             const pendingUser = localStorage.getItem('pending_tg_user') || 'No pending user';
             const pendingYt = localStorage.getItem('pending_yt_link') || 'No pending link';
@@ -769,7 +845,7 @@
 
         function executeSwap() {
             const fromToken = document.getElementById('swapFrom').value;
-            const toToken = document.getElementById('swapTo').value;
+            const toToken = document.getElementById('swapToYou')?.value || document.getElementById('swapTo').value;
             const amount = document.getElementById('swapAmountInput').value.trim();
 
             if (!amount || parseFloat(amount) <= 0) {
@@ -785,7 +861,7 @@
         function openReceiveForToken(tokenName) {
             const token = sampleTokens.find(t => t.name === tokenName);
             if (token && token.symbol === "WLD" && !wldUnlocked) {
-                alert("🔒 WorldCoin (WLD) is currently locked! Complete your 90-day daily check-in streak to unlock it.");
+                alert("WorldCoin (WLD) is currently locked! Complete your 90-day daily check-in streak to unlock it.");
                 return;
             }
             if(token) {
@@ -815,16 +891,30 @@
 
         function openProfile() {
             document.getElementById('profileModal').classList.remove('hidden');
-            document.getElementById('usernameInput').value = localStorage.getItem('wallet_username') || '';
-            document.getElementById('profileDisplayName').innerText = localStorage.getItem('wallet_username') ? "@" + localStorage.getItem('wallet_username') : "World Crypto User";
+            let uname = localStorage.getItem('wallet_username') || 'User';
+            document.getElementById('usernameInput').value = uname;
+            document.getElementById('profileDisplayName').innerText = "@" + uname;
             document.getElementById('seedPhraseDisplay').innerText = localStorage.getItem('wallet_seed') || 'N/A';
+            
+            let refLink = `https://t.me/world_crypto_wallet_bot?start=ref_${uname}`;
+            document.getElementById('referralLinkDisplay').value = refLink;
+        }
+
+        function copyReferralLink() {
+            const refInput = document.getElementById('referralLinkDisplay');
+            refInput.select();
+            refInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(refInput.value);
+            alert("Referral link copied to clipboard!");
         }
 
         function saveUsername() {
             const uname = document.getElementById('usernameInput').value.trim();
-            if (uname) {
+            if (uname && uname.length > 0) {
                 localStorage.setItem('wallet_username', uname);
                 document.getElementById('profileDisplayName').innerText = "@" + uname;
+                let refLink = `https://t.me/world_crypto_wallet_bot?start=ref_${uname}`;
+                document.getElementById('referralLinkDisplay').value = refLink;
                 alert('Username saved!');
             } else {
                 alert('Enter a valid username.');
